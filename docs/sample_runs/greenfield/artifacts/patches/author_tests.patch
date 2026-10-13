@@ -1,0 +1,245 @@
+--- /dev/null
++++ b/tests/conftest.py
+@@ -0,0 +1,16 @@
++import pytest
++from fastapi.testclient import TestClient
++
++from shortener.api import create_app
++from shortener.config import Settings
++
++
++@pytest.fixture
++def settings(tmp_path):
++    return Settings(db_path=str(tmp_path / "test.db"))
++
++
++@pytest.fixture
++def client(settings):
++    with TestClient(create_app(settings), follow_redirects=False) as c:
++        yield c
+
+--- /dev/null
++++ b/tests/test_api.py
+@@ -0,0 +1,33 @@
++def test_health(client):
++    assert client.get("/healthz").json() == {"status": "ok"}
++
++
++def test_create_redirect_stats_flow(client):
++    r = client.post("/api/v1/links", json={"url": "https://example.com/page"})
++    assert r.status_code == 201
++    body = r.json()
++    assert body["short_url"].endswith("/" + body["code"])
++    hit = client.get("/" + body["code"], headers={"referer": "https://news.example"})
++    assert hit.status_code == 307
++    assert hit.headers["location"] == "https://example.com/page"
++    assert hit.headers["cache-control"] == "no-store"
++    stats = client.get(f"/api/v1/links/{body['code']}/stats").json()
++    assert stats["total_clicks"] == 1
++    assert stats["top_referrers"] == [{"referrer": "https://news.example", "clicks": 1}]
++
++
++def test_custom_alias_and_conflict(client):
++    assert client.post("/api/v1/links", json={"url": "https://example.com", "alias": "promo"}).status_code == 201
++    dup = client.post("/api/v1/links", json={"url": "https://example.org", "alias": "promo"})
++    assert dup.status_code == 409 and dup.json()["error"] == "alias_taken"
++
++
++def test_validation_errors(client):
++    assert client.post("/api/v1/links", json={"url": "http://127.0.0.1"}).json()["error"] == "invalid_url"
++    assert client.post("/api/v1/links", json={"url": "https://e.com", "alias": "api"}).json()["error"] == "invalid_alias"
++    assert client.post("/api/v1/links", json={}).status_code == 422
++
++
++def test_unknown_code_404(client):
++    assert client.get("/doesnotexist").status_code == 404
++    assert client.get("/api/v1/links/doesnotexist/stats").status_code == 404
+
+--- /dev/null
++++ b/tests/test_codegen.py
+@@ -0,0 +1,24 @@
++import pytest
++
++from shortener.codegen import ALPHABET, generate_code, validate_alias
++from shortener.errors import InvalidAlias
++
++
++def test_generate_code_length_and_alphabet():
++    code = generate_code(9)
++    assert len(code) == 9 and set(code) <= set(ALPHABET)
++
++
++def test_generate_code_is_not_constant():
++    assert len({generate_code() for _ in range(50)}) == 50
++
++
++@pytest.mark.parametrize("alias", ["abc", "my-link_1", "A" * 32])
++def test_valid_aliases(alias):
++    assert validate_alias(alias) == alias
++
++
++@pytest.mark.parametrize("alias", ["ab", "A" * 33, "has space", "semi;colon", "api", "HEALTHZ", ""])
++def test_invalid_aliases(alias):
++    with pytest.raises(InvalidAlias):
++        validate_alias(alias)
+
+--- /dev/null
++++ b/tests/test_service.py
+@@ -0,0 +1,56 @@
++import pytest
++
++from shortener.config import Settings
++from shortener.errors import AliasTaken, LinkNotFound
++from shortener.service import ShortenerService
++from shortener.store import LinkStore
++
++
++class Clock:
++    def __init__(self, now=1_000_000.0):
++        self.now = now
++
++    def __call__(self):
++        return self.now
++
++
++@pytest.fixture
++def clock():
++    return Clock()
++
++
++@pytest.fixture
++def service(tmp_path, clock):
++    settings = Settings(db_path=str(tmp_path / "s.db"))
++    return ShortenerService(LinkStore(settings.db_path), settings, clock)
++
++
++def test_create_and_resolve(service):
++    link = service.create("https://example.com/a")
++    assert service.resolve(link.code) == "https://example.com/a"
++
++
++def test_alias_conflict(service):
++    service.create("https://example.com/a", alias="mine")
++    with pytest.raises(AliasTaken):
++        service.create("https://example.com/b", alias="mine")
++
++
++def test_unknown_code(service):
++    with pytest.raises(LinkNotFound):
++        service.resolve("nope")
++    with pytest.raises(LinkNotFound):
++        service.stats("nope")
++
++
++def test_stats_windows_and_referrers(service, clock):
++    link = service.create("https://example.com/a")
++    service.resolve(link.code, "https://old.example")
++    clock.now += 2 * 86_400
++    service.resolve(link.code, "https://a.example")
++    service.resolve(link.code, "https://a.example")
++    service.resolve(link.code, None)
++    stats = service.stats(link.code)
++    assert stats["total_clicks"] == 4
++    assert stats["clicks_last_24h"] == 3
++    assert stats["top_referrers"][0] == {"referrer": "https://a.example", "clicks": 2}
+
+--- /dev/null
++++ b/tests/test_validation.py
+@@ -0,0 +1,24 @@
++import pytest
++
++from shortener.errors import InvalidUrl
++from shortener.validation import validate_url
++
++
++@pytest.mark.parametrize("url", [
++    "https://example.com", "http://example.com/a?b=c#d", "https://sub.example.co.uk:8443/x",
++    "https://93.184.216.34/x",
++])
++def test_accepts_public_urls(url):
++    assert validate_url(url) == url
++
++
++@pytest.mark.parametrize("url", [
++    "", "   ", "ftp://example.com", "javascript:alert(1)", "//example.com", "https://",
++    "http://localhost/x", "http://foo.localhost", "http://127.0.0.1", "http://10.0.0.5",
++    "http://192.168.1.1", "http://169.254.169.254/latest/meta-data", "http://[::1]/",
++    "http://0.0.0.0", "https://user:pw@example.com", "https://svc.internal/x",
++    "https://example.com/" + "a" * 3000,
++])
++def test_rejects_unsafe_urls(url):
++    with pytest.raises(InvalidUrl):
++        validate_url(url)
+
+--- /dev/null
++++ b/tests/test_contract_generated.py
+@@ -0,0 +1,69 @@
++"""GENERATED by the api-designer/test-author agents from the API contract. Do not edit by hand."""
++import pytest
++
++CONTRACT = {
++    "endpoints": [
++        {
++            "method": "POST",
++            "path": "/api/v1/links",
++            "responses": [
++                201,
++                409,
++                422
++            ]
++        },
++        {
++            "method": "GET",
++            "path": "/api/v1/links/{code}/stats",
++            "responses": [
++                200,
++                404
++            ]
++        },
++        {
++            "method": "GET",
++            "path": "/healthz",
++            "responses": [
++                200
++            ]
++        },
++        {
++            "method": "GET",
++            "path": "/{code}",
++            "responses": [
++                307,
++                404
++            ]
++        }
++    ],
++    "request_schema": "CreateLinkRequest",
++    "request_fields": [
++        "alias",
++        "url"
++    ],
++    "packs": [
++        "core"
++    ]
++}
++
++
++@pytest.fixture
++def spec(client):
++    return client.get("/openapi.json").json()
++
++
++def test_every_contracted_endpoint_exists(spec):
++    for ep in CONTRACT["endpoints"]:
++        assert ep["path"] in spec["paths"], f"missing path {ep['path']}"
++        assert ep["method"].lower() in spec["paths"][ep["path"]], f"missing {ep['method']} {ep['path']}"
++
++
++def test_request_schema_has_contracted_fields(spec):
++    props = spec["components"]["schemas"][CONTRACT["request_schema"]]["properties"]
++    for field in CONTRACT["request_fields"]:
++        assert field in props, f"request field '{field}' missing"
++
++
++def test_no_undocumented_public_paths(spec):
++    allowed = {ep["path"] for ep in CONTRACT["endpoints"]}
++    assert set(spec["paths"]) <= allowed, f"undocumented paths: {set(spec['paths']) - allowed}"

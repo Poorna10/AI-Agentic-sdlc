@@ -1,0 +1,152 @@
+--- /dev/null
++++ b/shortener/ratelimit.py
+@@ -0,0 +1,34 @@
++"""In-process token-bucket rate limiter. Single-node only; see design notes for trade-offs."""
++from __future__ import annotations
++
++import threading
++import time
++from typing import Callable
++
++
++class TokenBucketLimiter:
++    def __init__(self, per_minute: int, burst: int | None = None,
++                 clock: Callable[[], float] = time.monotonic, max_keys: int = 10_000) -> None:
++        self._rate = per_minute / 60.0
++        self._capacity = float(burst if burst is not None else per_minute)
++        self._clock = clock
++        self._max_keys = max_keys
++        self._buckets: dict[str, tuple[float, float]] = {}  # key -> (tokens, last_ts)
++        self._lock = threading.Lock()
++
++    def allow(self, key: str) -> bool:
++        now = self._clock()
++        with self._lock:
++            tokens, last = self._buckets.get(key, (self._capacity, now))
++            tokens = min(self._capacity, tokens + (now - last) * self._rate)
++            allowed = tokens >= 1.0
++            self._buckets[key] = (tokens - 1.0 if allowed else tokens, now)
++            if len(self._buckets) > self._max_keys:  # bound memory under key-churn attacks
++                oldest = sorted(self._buckets, key=lambda k: self._buckets[k][1])
++                for k in oldest[: len(oldest) // 2]:
++                    del self._buckets[k]
++            return allowed
++
++
++def client_key(request) -> str:
++    return request.client.host if request.client else "unknown"
+
+--- a/shortener/errors.py
++++ b/shortener/errors.py
+@@ -46,4 +46,15 @@
+     code = "invalid_lifetime"
+ 
+ 
++class RateLimited(ShortenerError):
++    status_code = 429
++    code = "rate_limited"
++    headers = {"Retry-After": "60"}
++
++
++class DomainBlocked(ShortenerError):
++    status_code = 422
++    code = "domain_blocked"
++
++
+ # [ext:errors]
+
+--- a/shortener/config.py
++++ b/shortener/config.py
+@@ -11,6 +11,8 @@
+     base_url: str = "http://localhost:8000"
+     code_length: int = 7
+     max_url_length: int = 2048
++    rate_limit_per_minute: int = 30
++    blocked_domains: tuple[str, ...] = ("evil.example", "phishing.test")
+     # [ext:settings]
+ 
+     @classmethod
+
+--- a/shortener/api.py
++++ b/shortener/api.py
+@@ -9,6 +9,9 @@
+ from .errors import ShortenerError
+ from .service import ShortenerService
+ from .store import Link, LinkStore
++from .errors import RateLimited
++from .ratelimit import TokenBucketLimiter, client_key
++from .headers import SECURITY_HEADERS
+ # [ext:imports]
+ 
+ 
+@@ -34,6 +37,14 @@
+     settings = settings or Settings.from_env()
+     service = service or ShortenerService(LinkStore(settings.db_path), settings)
+     app = FastAPI(title="URL Shortener", version="1.0.0")
++    limiter = TokenBucketLimiter(settings.rate_limit_per_minute)
++    @app.middleware("http")
++    async def security_headers(request: Request, call_next):
++        response = await call_next(request)
++        for name, value in SECURITY_HEADERS.items():
++            response.headers.setdefault(name, value)
++        return response
++
+     # [ext:middleware]
+ 
+     @app.exception_handler(ShortenerError)
+@@ -61,6 +72,8 @@
+ 
+     @app.post("/api/v1/links", status_code=201, response_model=LinkResponse)
+     def create_link(body: CreateLinkRequest, request: Request) -> LinkResponse:
++        if not limiter.allow(client_key(request)):
++            raise RateLimited("too many link creations; retry later")
+         # [ext:create-guards]
+         link = service.create(body.url, body.alias, body.ttl_seconds, body.max_clicks)
+         return to_response(link)
+
+--- /dev/null
++++ b/shortener/blocklist.py
+@@ -0,0 +1,7 @@
++"""Destination domain denylist (exact or subdomain match)."""
++from __future__ import annotations
++
++
++def is_blocked(host: str, blocked: tuple[str, ...]) -> bool:
++    host = host.lower().rstrip(".")
++    return any(host == d or host.endswith("." + d) for d in (b.lower() for b in blocked))
+
+--- a/shortener/service.py
++++ b/shortener/service.py
+@@ -11,6 +11,10 @@
+ from .validation import validate_url
+ from .errors import ClickLimitReached, LinkExpired
+ from .lifecycle import compute_expiry, is_expired, validate_lifetime
++from urllib.parse import urlsplit
++
++from .blocklist import is_blocked
++from .errors import DomainBlocked
+ # [ext:service-imports]
+ 
+ MAX_COLLISION_RETRIES = 5
+@@ -28,6 +32,9 @@
+                max_clicks: int | None = None) -> Link:
+         url = validate_url(url, self._settings.max_url_length)
+         validate_lifetime(ttl_seconds, max_clicks)
++        host = urlsplit(url).hostname or ""
++        if is_blocked(host, self._settings.blocked_domains):
++            raise DomainBlocked(f"destination domain '{host}' is blocked")
+         # [ext:create-validation]
+         if alias is not None:
+             validate_alias(alias)
+
+--- /dev/null
++++ b/shortener/headers.py
+@@ -0,0 +1,8 @@
++"""Security response headers applied to every response."""
++
++SECURITY_HEADERS = {
++    "X-Content-Type-Options": "nosniff",
++    "X-Frame-Options": "DENY",
++    "Referrer-Policy": "no-referrer",
++    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
++}

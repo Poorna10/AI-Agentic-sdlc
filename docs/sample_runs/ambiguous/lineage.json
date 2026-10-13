@@ -1,0 +1,462 @@
+{
+  "versions": {
+    "raw_requirement": [
+      {
+        "version": 1,
+        "hash": "ad2f556fea7357fd",
+        "producer": "human:requester",
+        "ts": 1791883370.618
+      },
+      {
+        "version": 2,
+        "hash": "f5801fa79e139a54",
+        "producer": "human:security-lead",
+        "ts": 1791883370.665
+      }
+    ],
+    "requirements": [
+      {
+        "version": 1,
+        "hash": "70e1eea51d7ab596",
+        "producer": "requirements:requirements-analyst",
+        "ts": 1791883370.633
+      },
+      {
+        "version": 2,
+        "hash": "7996b48a8f584307",
+        "producer": "requirements:requirements-analyst",
+        "ts": 1791883370.667
+      }
+    ],
+    "codebase_map": [
+      {
+        "version": 1,
+        "hash": "d23c9acf975ea679",
+        "producer": "codebase_analysis:codebase-analyst",
+        "ts": 1791883370.639
+      }
+    ],
+    "plan": [
+      {
+        "version": 1,
+        "hash": "7e1e23cbe63cba89",
+        "producer": "plan:planner",
+        "ts": 1791883370.64
+      },
+      {
+        "version": 2,
+        "hash": "b332898ff5779921",
+        "producer": "plan:planner",
+        "ts": 1791883370.669
+      }
+    ],
+    "design": [
+      {
+        "version": 1,
+        "hash": "b365e412fd003cd1",
+        "producer": "design:architect",
+        "ts": 1791883370.643
+      },
+      {
+        "version": 2,
+        "hash": "cd948c805341629b",
+        "producer": "design:architect",
+        "ts": 1791883370.676
+      }
+    ],
+    "api_contract": [
+      {
+        "version": 1,
+        "hash": "6a31d93d9559e572",
+        "producer": "api_spec:api-designer",
+        "ts": 1791883370.647
+      },
+      {
+        "version": 2,
+        "hash": "ebc54ffa10ee1bf5",
+        "producer": "api_spec:api-designer",
+        "ts": 1791883370.677
+      }
+    ],
+    "test_suite": [
+      {
+        "version": 1,
+        "hash": "2670e0c41f04f102",
+        "producer": "author_tests:test-author",
+        "ts": 1791883370.653
+      },
+      {
+        "version": 2,
+        "hash": "16649b1538a9b83f",
+        "producer": "author_tests:test-author",
+        "ts": 1791883370.689
+      }
+    ],
+    "implementation": [
+      {
+        "version": 1,
+        "hash": "a18e4f93834ac429",
+        "producer": "implement:implementer",
+        "ts": 1791883370.664
+      },
+      {
+        "version": 2,
+        "hash": "0c0d587a9a465686",
+        "producer": "implement:implementer",
+        "ts": 1791883370.701
+      }
+    ],
+    "docs_bundle": [
+      {
+        "version": 1,
+        "hash": "1ddd586aa1a5c0b6",
+        "producer": "docs:docs-writer",
+        "ts": 1791883370.708
+      }
+    ],
+    "security_report": [
+      {
+        "version": 1,
+        "hash": "ffe3cc57632da689",
+        "producer": "security_review:security-reviewer",
+        "ts": 1791883370.753
+      }
+    ],
+    "verification": [
+      {
+        "version": 1,
+        "hash": "44a2414a17a1b6a4",
+        "producer": "verify:verifier",
+        "ts": 1791883372.94
+      }
+    ],
+    "release_report": [
+      {
+        "version": 1,
+        "hash": "62b0fc2e22db5ff4",
+        "producer": "release:release-manager",
+        "ts": 1791883372.942
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "stage": "requirements",
+      "actor": "human:product-owner",
+      "kind": "approval",
+      "ref": "requirements_signoff",
+      "decision": "APPROVED: Requirements sign-off",
+      "rationale": "Assumptions AMB-PROD and AMB-ABUSE accepted (30 creates/min/client).",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.633
+    },
+    {
+      "id": "D-002",
+      "stage": "requirements",
+      "actor": "agent:requirements-analyst",
+      "kind": "clarification",
+      "ref": "AMB-PERF",
+      "decision": "AMB-PERF: p95 redirect latency under 50 ms.",
+      "rationale": "answered by requester",
+      "alternatives": [
+        "What measurable latency target defines 'fast' (e.g. p95 redirect latency)?"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.633
+    },
+    {
+      "id": "D-003",
+      "stage": "requirements",
+      "actor": "agent:requirements-analyst",
+      "kind": "clarification",
+      "ref": "AMB-SEC",
+      "decision": "AMB-SEC: Throttle abusive clients and add standard browser security headers.",
+      "rationale": "answered by requester",
+      "alternatives": [
+        "Which threats are in scope for 'secure': abuse/spam, malicious destinations, browser/transport hardening?"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.633
+    },
+    {
+      "id": "D-004",
+      "stage": "requirements",
+      "actor": "agent:requirements-analyst",
+      "kind": "assumption",
+      "ref": "AMB-PROD",
+      "decision": "AMB-PROD: ASSUMED 'health endpoint, security headers and request throttling'",
+      "rationale": "no answer available; conservative default chosen and flagged for sign-off",
+      "alternatives": [
+        "What does 'production ready' include for this release (health, hardening, limits, docs)?"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.633
+    },
+    {
+      "id": "D-005",
+      "stage": "requirements",
+      "actor": "agent:requirements-analyst",
+      "kind": "assumption",
+      "ref": "AMB-ABUSE",
+      "decision": "AMB-ABUSE: ASSUMED '30 link creations per minute per client'",
+      "rationale": "no answer available; conservative default chosen and flagged for sign-off",
+      "alternatives": [
+        "What request rate per client should be tolerated before throttling?"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.633
+    },
+    {
+      "id": "D-006",
+      "stage": "plan",
+      "actor": "agent:planner",
+      "kind": "plan",
+      "ref": null,
+      "decision": "Scope = ['ratelimit', 'secheaders'] (brownfield)",
+      "rationale": "brownfield: requested capabilities map to packs ['core', 'ratelimit', 'secheaders']; already installed: ['core', 'expiry']; to implement: ['ratelimit', 'secheaders']",
+      "alternatives": [
+        "implement everything from scratch",
+        "defer optional capabilities"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "requirements": 1,
+        "codebase_map": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.64
+    },
+    {
+      "id": "D-007",
+      "stage": "design",
+      "actor": "human:product-owner",
+      "kind": "approval",
+      "ref": "design_signoff",
+      "decision": "APPROVED: Design sign-off (high-impact change)",
+      "rationale": "New 429 / 422 failure modes are acceptable to API clients.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.643
+    },
+    {
+      "id": "D-008",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-020",
+      "decision": "ADR-020: In-process token bucket keyed by client address",
+      "rationale": "No new infrastructure; O(1) per request; smooths bursts",
+      "alternatives": [
+        "Redis sliding window",
+        "API gateway rate limiting"
+      ],
+      "tradeoff": "Not shared across replicas; resets on restart",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.643
+    },
+    {
+      "id": "D-009",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-040",
+      "decision": "ADR-040: Add nosniff/DENY/no-referrer/HSTS but no Content-Security-Policy",
+      "rationale": "A strict CSP would break the bundled Swagger UI; API returns no HTML",
+      "alternatives": [
+        "Strict CSP with docs disabled"
+      ],
+      "tradeoff": "Slightly weaker defence-in-depth",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "superseded",
+      "ts": 1791883370.643
+    },
+    {
+      "id": "D-010",
+      "stage": "(external)",
+      "actor": "human:security-lead",
+      "kind": "change_request",
+      "ref": "CR-1",
+      "decision": "Change request: Also reject links whose destination is a known phishing domain (blocklist).",
+      "rationale": "Phishing campaign reported while implementation was in flight",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {},
+      "status": "active",
+      "ts": 1791883370.666
+    },
+    {
+      "id": "D-011",
+      "stage": "requirements",
+      "actor": "human:product-owner",
+      "kind": "approval",
+      "ref": "requirements_signoff",
+      "decision": "APPROVED: Requirements sign-off",
+      "rationale": "Assumptions AMB-PROD and AMB-ABUSE accepted (30 creates/min/client).",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 2
+      },
+      "status": "active",
+      "ts": 1791883370.667
+    },
+    {
+      "id": "D-012",
+      "stage": "plan",
+      "actor": "agent:planner",
+      "kind": "plan",
+      "ref": null,
+      "decision": "Scope = ['ratelimit', 'blocklist', 'secheaders'] (brownfield)",
+      "rationale": "brownfield: requested capabilities map to packs ['core', 'ratelimit', 'blocklist', 'secheaders']; already installed: ['core', 'expiry']; to implement: ['ratelimit', 'blocklist', 'secheaders']",
+      "alternatives": [
+        "implement everything from scratch",
+        "defer optional capabilities"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "requirements": 2,
+        "codebase_map": 1
+      },
+      "status": "active",
+      "ts": 1791883370.669
+    },
+    {
+      "id": "D-013",
+      "stage": "design",
+      "actor": "human:product-owner",
+      "kind": "approval",
+      "ref": "design_signoff",
+      "decision": "APPROVED: Design sign-off (high-impact change)",
+      "rationale": "New 429 / 422 failure modes are acceptable to API clients.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 2,
+        "codebase_map": 1,
+        "requirements": 2
+      },
+      "status": "active",
+      "ts": 1791883370.676
+    },
+    {
+      "id": "D-014",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-020",
+      "decision": "ADR-020: In-process token bucket keyed by client address",
+      "rationale": "No new infrastructure; O(1) per request; smooths bursts",
+      "alternatives": [
+        "Redis sliding window",
+        "API gateway rate limiting"
+      ],
+      "tradeoff": "Not shared across replicas; resets on restart",
+      "inputs": {
+        "plan": 2,
+        "codebase_map": 1,
+        "requirements": 2
+      },
+      "status": "active",
+      "ts": 1791883370.676
+    },
+    {
+      "id": "D-015",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-030",
+      "decision": "ADR-030: Enforce the denylist at creation time, not redirect time",
+      "rationale": "Keeps the hot redirect path free of extra checks",
+      "alternatives": [
+        "Check on every redirect"
+      ],
+      "tradeoff": "Links created before a domain is listed keep redirecting; needs a periodic re-scan",
+      "inputs": {
+        "plan": 2,
+        "codebase_map": 1,
+        "requirements": 2
+      },
+      "status": "active",
+      "ts": 1791883370.676
+    },
+    {
+      "id": "D-016",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-040",
+      "decision": "ADR-040: Add nosniff/DENY/no-referrer/HSTS but no Content-Security-Policy",
+      "rationale": "A strict CSP would break the bundled Swagger UI; API returns no HTML",
+      "alternatives": [
+        "Strict CSP with docs disabled"
+      ],
+      "tradeoff": "Slightly weaker defence-in-depth",
+      "inputs": {
+        "plan": 2,
+        "codebase_map": 1,
+        "requirements": 2
+      },
+      "status": "active",
+      "ts": 1791883370.676
+    },
+    {
+      "id": "D-017",
+      "stage": "release",
+      "actor": "human:product-owner",
+      "kind": "approval",
+      "ref": "release_approval",
+      "decision": "APPROVED: Release approval",
+      "rationale": "Ship.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "verification": 1,
+        "security_report": 1,
+        "implementation": 2,
+        "requirements": 2,
+        "docs_bundle": 1,
+        "plan": 2,
+        "design": 2
+      },
+      "status": "active",
+      "ts": 1791883372.942
+    }
+  ]
+}

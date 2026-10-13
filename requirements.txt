@@ -1,0 +1,5 @@
+# Orchestrator itself is standard-library only. These are needed to run the generated URL shortener and the tests.
+fastapi>=0.110
+uvicorn>=0.29
+httpx>=0.27
+pytest>=8.0

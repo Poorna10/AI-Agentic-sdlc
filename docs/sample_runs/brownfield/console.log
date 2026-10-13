@@ -1,0 +1,45 @@
+
+=== brownfield: Enhance an existing service: link expiry + click budgets, with transient fault and rollback injected
+    run: runs/brownfield-20261013-092249-407
+
+[  0.01s] ▶ stage_started       codebase_analysis agent=codebase-analyst
+[  0.01s] ▶ stage_started       requirements      agent=requirements-analyst
+[  0.01s] ✋ approval_requested  requirements      requirements_signoff: stage outcome requires human sign-off
+[  0.01s] 👤 approval_decision   requirements      requirements_signoff -> APPROVED by human:service-owner
+[  0.01s] ✔ stage_succeeded     requirements      attempt=1 agent=requirements-analyst (0.003s)
+[  0.02s] ✔ stage_succeeded     codebase_analysis attempt=1 agent=codebase-analyst (0.01s)
+[  0.02s] ▶ stage_started       plan              agent=planner
+[  0.02s] ✔ stage_succeeded     plan              attempt=1 agent=planner (0.0s)
+[  0.02s] ▶ stage_started       design            agent=architect
+[  0.02s] ✋ approval_requested  design            design_signoff: stage outcome requires human sign-off
+[  0.02s] 👤 approval_decision   design            design_signoff -> APPROVED by human:service-owner
+[  0.02s] ✔ stage_succeeded     design            attempt=1 agent=architect (0.002s)
+[  0.02s] ▶ stage_started       api_spec          agent=api-designer
+[  0.02s] ✔ stage_succeeded     api_spec          attempt=1 agent=api-designer (0.0s)
+[  0.02s] ▶ stage_started       implement         agent=implementer
+[  0.03s] ⛔ policy_violation    implement         CHG-002 REQUIRE_APPROVAL - persistent schema change [shortener/store.py]
+[  0.03s] ✋ approval_requested  implement         policy:CHG-002:implement: persistent schema change
+[  0.03s] 👤 approval_decision   implement         policy:CHG-002:implement -> APPROVED by human:service-owner
+[  0.03s] ▶ stage_started       author_tests      agent=test-author
+[  0.03s] ✔ stage_succeeded     author_tests      attempt=1 agent=test-author (0.005s)
+[  0.04s] ↩ rollback            implement         post-apply failure: 6 file(s) reverted
+[  0.04s] ✘ attempt_failed      implement         attempt=1 GateFailed: exit gate failed: workspace does not compile: shortener/broken.py:1: invalid syntax
+[  0.06s] ⛔ policy_violation    implement         CHG-002 REQUIRE_APPROVAL - persistent schema change [shortener/store.py]
+[  0.06s] ✋ approval_requested  implement         policy:CHG-002:implement: persistent schema change
+[  0.06s] 👤 approval_decision   implement         policy:CHG-002:implement -> APPROVED by human:service-owner
+[  0.08s] ✔ stage_succeeded     implement         attempt=2 agent=implementer (0.018s)
+[  0.08s] ▶ stage_started       docs              agent=docs-writer
+[  0.08s] ✘ attempt_failed      docs              attempt=1 TransientAgentError: injected transient failure (docs, attempt 1)
+[  0.08s] ▶ stage_started       security_review   agent=security-reviewer
+[  0.08s] ▶ stage_started       verify            agent=verifier
+[  0.10s] ✔ stage_succeeded     docs              attempt=2 agent=docs-writer (0.003s)
+[  0.11s] ✔ stage_succeeded     security_review   attempt=1 agent=security-reviewer (0.033s)
+[  1.11s] ✔ stage_succeeded     verify            attempt=1 agent=verifier (1.032s)
+[  1.11s] ▶ stage_started       release           agent=release-manager
+[  1.11s] ✋ approval_requested  release           release_approval: stage outcome requires human sign-off
+[  1.11s] 👤 approval_decision   release           release_approval -> APPROVED by human:service-owner
+[  1.11s] ✔ stage_succeeded     release           attempt=1 agent=release-manager (0.001s)
+
+=== RESULT: COMPLETED
+    summary : runs/brownfield-20261013-092249-407/ENGINEERING_SUMMARY.md
+    workspace: runs/brownfield-20261013-092249-407/workspace

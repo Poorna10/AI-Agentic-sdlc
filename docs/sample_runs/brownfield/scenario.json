@@ -1,0 +1,44 @@
+{
+  "name": "brownfield",
+  "description": "Enhance an existing service: link expiry + click budgets, with transient fault and rollback injected",
+  "requirement": "Links must be able to expire after a configurable TTL, and optionally stop working after a maximum number of clicks. Expired links must return HTTP 410. Existing links must keep working: no breaking API change and no data loss.",
+  "baseline_packs": [
+    "core"
+  ],
+  "human": {
+    "mode": "scripted",
+    "approver": "human:service-owner",
+    "default": "approve",
+    "approvals": {
+      "requirements_signoff": {
+        "decision": "approve",
+        "comment": "Backward-compat constraint captured."
+      },
+      "design_signoff": {
+        "decision": "approve",
+        "comment": "Additive nullable columns agreed; rollback plan reviewed."
+      },
+      "policy:CHG-002": {
+        "decision": "approve",
+        "comment": "ALTER TABLE is additive and idempotent."
+      },
+      "release_approval": {
+        "decision": "approve",
+        "comment": "Legacy-DB migration test is green."
+      }
+    }
+  },
+  "events": [],
+  "faults": [
+    {
+      "stage": "implement",
+      "attempt": 1,
+      "type": "corrupt_syntax"
+    },
+    {
+      "stage": "docs",
+      "attempt": 1,
+      "type": "exception"
+    }
+  ]
+}

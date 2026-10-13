@@ -1,0 +1,257 @@
+{
+  "versions": {
+    "raw_requirement": [
+      {
+        "version": 1,
+        "hash": "be232b921a5b03e5",
+        "producer": "human:requester",
+        "ts": 1791883368.354
+      }
+    ],
+    "codebase_map": [
+      {
+        "version": 1,
+        "hash": "c27a2da4b20254b7",
+        "producer": "codebase_analysis:codebase-analyst",
+        "ts": 1791883368.356
+      }
+    ],
+    "requirements": [
+      {
+        "version": 1,
+        "hash": "eb29fcb476b8f25d",
+        "producer": "requirements:requirements-analyst",
+        "ts": 1791883368.359
+      }
+    ],
+    "plan": [
+      {
+        "version": 1,
+        "hash": "83e014b6a3d9b94d",
+        "producer": "plan:planner",
+        "ts": 1791883368.36
+      }
+    ],
+    "design": [
+      {
+        "version": 1,
+        "hash": "b2794808ba5d1970",
+        "producer": "design:architect",
+        "ts": 1791883368.363
+      }
+    ],
+    "api_contract": [
+      {
+        "version": 1,
+        "hash": "f68ee51d26e05a4f",
+        "producer": "api_spec:api-designer",
+        "ts": 1791883368.364
+      }
+    ],
+    "test_suite": [
+      {
+        "version": 1,
+        "hash": "40801662ca554fde",
+        "producer": "author_tests:test-author",
+        "ts": 1791883368.38
+      }
+    ],
+    "implementation": [
+      {
+        "version": 1,
+        "hash": "d3bc0f90e6817408",
+        "producer": "implement:implementer",
+        "ts": 1791883368.388
+      }
+    ],
+    "docs_bundle": [
+      {
+        "version": 1,
+        "hash": "8f1fb115dd356783",
+        "producer": "docs:docs-writer",
+        "ts": 1791883368.398
+      }
+    ],
+    "security_report": [
+      {
+        "version": 1,
+        "hash": "86f1044a78a2d191",
+        "producer": "security_review:security-reviewer",
+        "ts": 1791883368.417
+      }
+    ],
+    "verification": [
+      {
+        "version": 1,
+        "hash": "79c0f529530b4338",
+        "producer": "verify:verifier",
+        "ts": 1791883369.323
+      }
+    ],
+    "release_report": [
+      {
+        "version": 1,
+        "hash": "a1cdd48a48b37c5c",
+        "producer": "release:release-manager",
+        "ts": 1791883369.325
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "stage": "requirements",
+      "actor": "human:tech-lead",
+      "kind": "approval",
+      "ref": "requirements_signoff",
+      "decision": "APPROVED: Requirements sign-off",
+      "rationale": "Scope matches the brief.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "active",
+      "ts": 1791883368.359
+    },
+    {
+      "id": "D-002",
+      "stage": "plan",
+      "actor": "agent:planner",
+      "kind": "plan",
+      "ref": null,
+      "decision": "Scope = ['core'] (greenfield)",
+      "rationale": "greenfield: requested capabilities map to packs ['core']; already installed: none; to implement: ['core']",
+      "alternatives": [
+        "implement everything from scratch",
+        "defer optional capabilities"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "requirements": 1,
+        "codebase_map": 1
+      },
+      "status": "active",
+      "ts": 1791883368.36
+    },
+    {
+      "id": "D-003",
+      "stage": "design",
+      "actor": "human:tech-lead",
+      "kind": "approval",
+      "ref": "design_signoff",
+      "decision": "APPROVED: Design sign-off (high-impact change)",
+      "rationale": "New schema + public API reviewed; SQLite acceptable for v1.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883368.363
+    },
+    {
+      "id": "D-004",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-001",
+      "decision": "ADR-001: SQLite with a single locked connection",
+      "rationale": "Zero-ops, transactional, adequate for the prototype's single node",
+      "alternatives": [
+        "PostgreSQL (better scale-out, heavier ops)",
+        "Redis (volatile by default)"
+      ],
+      "tradeoff": "Single-writer; horizontal scaling needs a store swap behind LinkStore",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883368.363
+    },
+    {
+      "id": "D-005",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-002",
+      "decision": "ADR-002: Redirect with 307 + Cache-Control: no-store",
+      "rationale": "301/308 are cached by browsers and would hide clicks from analytics",
+      "alternatives": [
+        "301 permanent",
+        "302"
+      ],
+      "tradeoff": "Extra hop on every visit",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883368.363
+    },
+    {
+      "id": "D-006",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-003",
+      "decision": "ADR-003: Layered api -> service -> store with `# [ext:*]` extension anchors",
+      "rationale": "Features land as small reviewable patches instead of rewrites",
+      "alternatives": [
+        "Plugin framework"
+      ],
+      "tradeoff": "Anchors are a convention that must be preserved",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883368.363
+    },
+    {
+      "id": "D-007",
+      "stage": "implement",
+      "actor": "human:tech-lead",
+      "kind": "approval",
+      "ref": "policy:CHG-002:implement",
+      "decision": "APPROVED: High-impact change (CHG-002)",
+      "rationale": "New tables links/clicks are expected for a greenfield service.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 1,
+        "design": 1
+      },
+      "status": "active",
+      "ts": 1791883368.371
+    },
+    {
+      "id": "D-008",
+      "stage": "release",
+      "actor": "human:tech-lead",
+      "kind": "approval",
+      "ref": "release_approval",
+      "decision": "APPROVED: Release approval",
+      "rationale": "All gates green.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "verification": 1,
+        "security_report": 1,
+        "implementation": 1,
+        "requirements": 1,
+        "docs_bundle": 1,
+        "plan": 1,
+        "design": 1
+      },
+      "status": "active",
+      "ts": 1791883369.325
+    }
+  ]
+}

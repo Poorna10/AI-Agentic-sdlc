@@ -1,0 +1,232 @@
+--- /dev/null
++++ b/shortener/lifecycle.py
+@@ -0,0 +1,25 @@
++"""Link lifecycle rules: optional TTL and optional click budget."""
++from __future__ import annotations
++
++from .errors import InvalidLifetime
++
++MAX_TTL_SECONDS = 365 * 86_400
++
++
++def _is_int(value: object) -> bool:
++    return isinstance(value, int) and not isinstance(value, bool)
++
++
++def validate_lifetime(ttl_seconds: int | None, max_clicks: int | None) -> None:
++    if ttl_seconds is not None and (not _is_int(ttl_seconds) or not 0 < ttl_seconds <= MAX_TTL_SECONDS):
++        raise InvalidLifetime(f"ttl_seconds must be between 1 and {MAX_TTL_SECONDS}")
++    if max_clicks is not None and (not _is_int(max_clicks) or max_clicks < 1):
++        raise InvalidLifetime("max_clicks must be a positive integer")
++
++
++def compute_expiry(created_at: float, ttl_seconds: int | None) -> float | None:
++    return None if ttl_seconds is None else created_at + ttl_seconds
++
++
++def is_expired(link, now: float) -> bool:
++    return link.expires_at is not None and now >= link.expires_at
+
+--- a/shortener/errors.py
++++ b/shortener/errors.py
+@@ -31,4 +31,19 @@
+     code = "code_generation_failed"
+ 
+ 
++class LinkExpired(ShortenerError):
++    status_code = 410
++    code = "link_expired"
++
++
++class ClickLimitReached(ShortenerError):
++    status_code = 410
++    code = "click_limit_reached"
++
++
++class InvalidLifetime(ShortenerError):
++    status_code = 422
++    code = "invalid_lifetime"
++
++
+ # [ext:errors]
+
+--- a/shortener/store.py
++++ b/shortener/store.py
+@@ -22,8 +22,10 @@
+ CREATE INDEX IF NOT EXISTS idx_clicks_code_ts ON clicks(code, ts);
+ """
+ 
+-_INSERT_LINK = "INSERT INTO links (code, url, created_at) VALUES (?, ?, ?)"
+-_SELECT_LINK = "SELECT code, url, created_at FROM links WHERE code = ?"
++_INSERT_LINK = ("INSERT INTO links (code, url, created_at, expires_at, max_clicks) "
++                "VALUES (?, ?, ?, ?, ?)")
++_SELECT_LINK = ("SELECT code, url, created_at, expires_at, max_clicks "
++                "FROM links WHERE code = ?")
+ 
+ 
+ @dataclass(frozen=True)
+@@ -31,15 +33,18 @@
+     code: str
+     url: str
+     created_at: float
++    expires_at: float | None = None
++    max_clicks: int | None = None
+     # [ext:link-fields]
+ 
+ 
+ def _link_params(link: Link) -> tuple:
+-    return (link.code, link.url, link.created_at)
++    return (link.code, link.url, link.created_at, link.expires_at, link.max_clicks)
+ 
+ 
+ def _to_link(row: sqlite3.Row) -> Link:
+-    return Link(code=row["code"], url=row["url"], created_at=row["created_at"])
++    return Link(code=row["code"], url=row["url"], created_at=row["created_at"],
++                expires_at=row["expires_at"], max_clicks=row["max_clicks"])
+ 
+ 
+ class LinkStore:
+@@ -53,6 +58,11 @@
+ 
+     def _migrate(self) -> None:
+         """Additive, idempotent schema migrations."""
++        cols = {r["name"] for r in self._conn.execute("PRAGMA table_info(links)")}
++        if "expires_at" not in cols:
++            self._conn.execute("ALTER TABLE links ADD COLUMN expires_at REAL")
++        if "max_clicks" not in cols:
++            self._conn.execute("ALTER TABLE links ADD COLUMN max_clicks INTEGER")
+         # [ext:migrations]
+ 
+     def insert_link(self, link: Link) -> None:
+@@ -93,4 +103,23 @@
+             ).fetchall()
+         return [{"referrer": r["referrer"], "clicks": r["n"]} for r in rows]
+ 
++    def record_click_limited(self, code: str, ts: float, referrer: str | None, max_clicks: int) -> bool:
++        """Atomically record a click unless the budget is spent. False => limit reached."""
++        with self._lock:
++            self._conn.execute("BEGIN IMMEDIATE")
++            try:
++                used = self._conn.execute("SELECT COUNT(*) FROM clicks WHERE code = ?", (code,)).fetchone()[0]
++                if used >= max_clicks:
++                    self._conn.execute("ROLLBACK")
++                    return False
++                self._conn.execute(
++                    "INSERT INTO clicks (code, ts, referrer) VALUES (?, ?, ?)",
++                    (code, ts, (referrer or None) and referrer[:512]),
++                )
++                self._conn.execute("COMMIT")
++                return True
++            except Exception:
++                self._conn.execute("ROLLBACK")
++                raise
++
+     # [ext:store-methods]
+
+--- a/shortener/service.py
++++ b/shortener/service.py
+@@ -9,6 +9,8 @@
+ from .errors import AliasTaken, CodeGenerationFailed, LinkNotFound
+ from .store import Link, LinkStore
+ from .validation import validate_url
++from .errors import ClickLimitReached, LinkExpired
++from .lifecycle import compute_expiry, is_expired, validate_lifetime
+ # [ext:service-imports]
+ 
+ MAX_COLLISION_RETRIES = 5
+@@ -22,14 +24,16 @@
+         self._settings = settings
+         self._clock = clock
+ 
+-    def create(self, url: str, alias: str | None = None) -> Link:
++    def create(self, url: str, alias: str | None = None, ttl_seconds: int | None = None,
++               max_clicks: int | None = None) -> Link:
+         url = validate_url(url, self._settings.max_url_length)
++        validate_lifetime(ttl_seconds, max_clicks)
+         # [ext:create-validation]
+         if alias is not None:
+             validate_alias(alias)
+-            return self._insert(self._new_link(alias, url))
++            return self._insert(self._new_link(alias, url, ttl_seconds, max_clicks))
+         for _ in range(MAX_COLLISION_RETRIES):
+-            link = self._new_link(generate_code(self._settings.code_length), url)
++            link = self._new_link(generate_code(self._settings.code_length), url, ttl_seconds, max_clicks)
+             try:
+                 return self._insert(link)
+             except AliasTaken:
+@@ -40,8 +44,14 @@
+         link = self._store.get_link(code)
+         if link is None:
+             raise LinkNotFound(code)
++        now = self._clock()
++        if is_expired(link, now):
++            raise LinkExpired(code)
+         # [ext:resolve-checks]
+-        self._store.record_click(code, self._clock(), referrer)
++        if link.max_clicks is None:
++            self._store.record_click(code, now, referrer)
++        elif not self._store.record_click_limited(code, now, referrer, link.max_clicks):
++            raise ClickLimitReached(code)
+         return link.url
+ 
+     def stats(self, code: str) -> dict:
+@@ -53,13 +63,18 @@
+             "code": link.code,
+             "url": link.url,
+             "created_at": link.created_at,
++            "expires_at": link.expires_at,
++            "max_clicks": link.max_clicks,
+             "total_clicks": self._store.count_clicks(code),
+             "clicks_last_24h": self._store.count_clicks(code, since=now - DAY_SECONDS),
+             "top_referrers": self._store.top_referrers(code),
+         }
+ 
+-    def _new_link(self, code: str, url: str) -> Link:
+-        return Link(code=code, url=url, created_at=self._clock())
++    def _new_link(self, code: str, url: str, ttl_seconds: int | None = None,
++                  max_clicks: int | None = None) -> Link:
++        now = self._clock()
++        return Link(code=code, url=url, created_at=now,
++                    expires_at=compute_expiry(now, ttl_seconds), max_clicks=max_clicks)
+ 
+     def _insert(self, link: Link) -> Link:
+         self._store.insert_link(link)
+
+--- a/shortener/api.py
++++ b/shortener/api.py
+@@ -15,6 +15,8 @@
+ class CreateLinkRequest(BaseModel):
+     url: str = Field(..., max_length=4096)
+     alias: str | None = None
++    ttl_seconds: int | None = Field(default=None, gt=0)
++    max_clicks: int | None = Field(default=None, gt=0)
+     # [ext:request-fields]
+ 
+ 
+@@ -23,6 +25,8 @@
+     short_url: str
+     url: str
+     created_at: float
++    expires_at: float | None = None
++    max_clicks: int | None = None
+     # [ext:response-fields]
+ 
+ 
+@@ -46,6 +50,8 @@
+             short_url=f"{settings.base_url.rstrip('/')}/{link.code}",
+             url=link.url,
+             created_at=link.created_at,
++            expires_at=link.expires_at,
++            max_clicks=link.max_clicks,
+             # [ext:response-values]
+         )
+ 
+@@ -56,7 +62,7 @@
+     @app.post("/api/v1/links", status_code=201, response_model=LinkResponse)
+     def create_link(body: CreateLinkRequest, request: Request) -> LinkResponse:
+         # [ext:create-guards]
+-        link = service.create(body.url, body.alias)
++        link = service.create(body.url, body.alias, body.ttl_seconds, body.max_clicks)
+         return to_response(link)
+ 
+     @app.get("/api/v1/links/{code}/stats")

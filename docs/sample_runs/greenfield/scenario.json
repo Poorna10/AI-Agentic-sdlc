@@ -1,0 +1,31 @@
+{
+  "name": "greenfield",
+  "description": "Build the URL shortener from scratch from a well-defined requirement",
+  "requirement": "Build a URL shortener service. Users can create short links for long URLs, optionally with a custom alias. Visiting a short link redirects to the original URL. Users can view click analytics for a link: total clicks, clicks in the last 24 hours and top referrers. Provide a health check endpoint.",
+  "baseline_packs": [],
+  "human": {
+    "mode": "scripted",
+    "approver": "human:tech-lead",
+    "default": "approve",
+    "approvals": {
+      "requirements_signoff": {
+        "decision": "approve",
+        "comment": "Scope matches the brief."
+      },
+      "design_signoff": {
+        "decision": "approve",
+        "comment": "New schema + public API reviewed; SQLite acceptable for v1."
+      },
+      "policy:CHG-002": {
+        "decision": "approve",
+        "comment": "New tables links/clicks are expected for a greenfield service."
+      },
+      "release_approval": {
+        "decision": "approve",
+        "comment": "All gates green."
+      }
+    }
+  },
+  "events": [],
+  "faults": []
+}

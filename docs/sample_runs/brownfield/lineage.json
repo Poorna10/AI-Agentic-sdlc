@@ -1,0 +1,254 @@
+{
+  "versions": {
+    "raw_requirement": [
+      {
+        "version": 1,
+        "hash": "fb6460a52435953f",
+        "producer": "human:requester",
+        "ts": 1791883369.417
+      }
+    ],
+    "requirements": [
+      {
+        "version": 1,
+        "hash": "0c6e62fc405a273c",
+        "producer": "requirements:requirements-analyst",
+        "ts": 1791883369.423
+      }
+    ],
+    "codebase_map": [
+      {
+        "version": 1,
+        "hash": "4bf0998823d0faa4",
+        "producer": "codebase_analysis:codebase-analyst",
+        "ts": 1791883369.427
+      }
+    ],
+    "plan": [
+      {
+        "version": 1,
+        "hash": "8de2e72f43f620be",
+        "producer": "plan:planner",
+        "ts": 1791883369.428
+      }
+    ],
+    "design": [
+      {
+        "version": 1,
+        "hash": "0bde4cf46b36384b",
+        "producer": "design:architect",
+        "ts": 1791883369.431
+      }
+    ],
+    "api_contract": [
+      {
+        "version": 1,
+        "hash": "7dfb224e052a585e",
+        "producer": "api_spec:api-designer",
+        "ts": 1791883369.432
+      }
+    ],
+    "test_suite": [
+      {
+        "version": 1,
+        "hash": "7fa946798ebcabff",
+        "producer": "author_tests:test-author",
+        "ts": 1791883369.441
+      }
+    ],
+    "implementation": [
+      {
+        "version": 1,
+        "hash": "4c9d92ef56ae6f0a",
+        "producer": "implement:implementer",
+        "ts": 1791883369.482
+      }
+    ],
+    "docs_bundle": [
+      {
+        "version": 1,
+        "hash": "5c9b7888baf5b854",
+        "producer": "docs:docs-writer",
+        "ts": 1791883369.51
+      }
+    ],
+    "security_report": [
+      {
+        "version": 1,
+        "hash": "532bb818af0d7879",
+        "producer": "security_review:security-reviewer",
+        "ts": 1791883369.518
+      }
+    ],
+    "verification": [
+      {
+        "version": 1,
+        "hash": "7def8296875f4590",
+        "producer": "verify:verifier",
+        "ts": 1791883370.52
+      }
+    ],
+    "release_report": [
+      {
+        "version": 1,
+        "hash": "f34e932a6be89008",
+        "producer": "release:release-manager",
+        "ts": 1791883370.522
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "stage": "requirements",
+      "actor": "human:service-owner",
+      "kind": "approval",
+      "ref": "requirements_signoff",
+      "decision": "APPROVED: Requirements sign-off",
+      "rationale": "Backward-compat constraint captured.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "raw_requirement": 1
+      },
+      "status": "active",
+      "ts": 1791883369.423
+    },
+    {
+      "id": "D-002",
+      "stage": "plan",
+      "actor": "agent:planner",
+      "kind": "plan",
+      "ref": null,
+      "decision": "Scope = ['expiry'] (brownfield)",
+      "rationale": "brownfield: requested capabilities map to packs ['core', 'expiry']; already installed: ['core']; to implement: ['expiry']",
+      "alternatives": [
+        "implement everything from scratch",
+        "defer optional capabilities"
+      ],
+      "tradeoff": "",
+      "inputs": {
+        "requirements": 1,
+        "codebase_map": 1
+      },
+      "status": "active",
+      "ts": 1791883369.428
+    },
+    {
+      "id": "D-003",
+      "stage": "design",
+      "actor": "human:service-owner",
+      "kind": "approval",
+      "ref": "design_signoff",
+      "decision": "APPROVED: Design sign-off (high-impact change)",
+      "rationale": "Additive nullable columns agreed; rollback plan reviewed.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883369.431
+    },
+    {
+      "id": "D-004",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-010",
+      "decision": "ADR-010: Additive nullable columns instead of a new table",
+      "rationale": "Keeps existing rows valid with zero backfill; trivially reversible",
+      "alternatives": [
+        "link_policies table",
+        "full migration framework"
+      ],
+      "tradeoff": "Wider links table; revisit if more per-link policy accumulates",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883369.431
+    },
+    {
+      "id": "D-005",
+      "stage": "design",
+      "actor": "agent:architect",
+      "kind": "adr",
+      "ref": "ADR-011",
+      "decision": "ADR-011: HTTP 410 Gone for expired and exhausted links",
+      "rationale": "Distinguishes 'existed but is gone' from 404 for clients and crawlers",
+      "alternatives": [
+        "404",
+        "403"
+      ],
+      "tradeoff": "Reveals that a code once existed",
+      "inputs": {
+        "plan": 1,
+        "codebase_map": 1,
+        "requirements": 1
+      },
+      "status": "active",
+      "ts": 1791883369.431
+    },
+    {
+      "id": "D-006",
+      "stage": "implement",
+      "actor": "human:service-owner",
+      "kind": "approval",
+      "ref": "policy:CHG-002:implement",
+      "decision": "APPROVED: High-impact change (CHG-002)",
+      "rationale": "ALTER TABLE is additive and idempotent.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 1,
+        "design": 1
+      },
+      "status": "active",
+      "ts": 1791883369.435
+    },
+    {
+      "id": "D-007",
+      "stage": "implement",
+      "actor": "human:service-owner",
+      "kind": "approval",
+      "ref": "policy:CHG-002:implement",
+      "decision": "APPROVED: High-impact change (CHG-002)",
+      "rationale": "ALTER TABLE is additive and idempotent.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "plan": 1,
+        "design": 1
+      },
+      "status": "active",
+      "ts": 1791883369.469
+    },
+    {
+      "id": "D-008",
+      "stage": "release",
+      "actor": "human:service-owner",
+      "kind": "approval",
+      "ref": "release_approval",
+      "decision": "APPROVED: Release approval",
+      "rationale": "Legacy-DB migration test is green.",
+      "alternatives": [],
+      "tradeoff": "",
+      "inputs": {
+        "verification": 1,
+        "security_report": 1,
+        "implementation": 1,
+        "requirements": 1,
+        "docs_bundle": 1,
+        "plan": 1,
+        "design": 1
+      },
+      "status": "active",
+      "ts": 1791883370.522
+    }
+  ]
+}

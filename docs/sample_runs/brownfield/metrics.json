@@ -1,0 +1,95 @@
+{
+  "stages_total": 11,
+  "stages_succeeded": 11,
+  "stage_success_rate": 1.0,
+  "first_attempt_success_rate": 0.818,
+  "retries": 2,
+  "rollbacks": 1,
+  "policy_blocks": 0,
+  "replans": 0,
+  "approvals": 5,
+  "approval_wait_s": 0.0,
+  "mttr_s": 0.032,
+  "recovered_incidents": 2,
+  "unrecovered_incidents": 0,
+  "end_to_end_latency_s": 1.112,
+  "per_stage": {
+    "codebase_analysis": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.01
+    },
+    "requirements": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.003
+    },
+    "plan": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.0
+    },
+    "design": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.002
+    },
+    "api_spec": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.0
+    },
+    "implement": {
+      "attempts": 2,
+      "failures": 1,
+      "retries": 1,
+      "rollbacks": 1,
+      "duration_s": 0.018
+    },
+    "author_tests": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.005
+    },
+    "docs": {
+      "attempts": 2,
+      "failures": 1,
+      "retries": 1,
+      "rollbacks": 0,
+      "duration_s": 0.003
+    },
+    "security_review": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.033
+    },
+    "verify": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 1.032
+    },
+    "release": {
+      "attempts": 1,
+      "failures": 0,
+      "retries": 0,
+      "rollbacks": 0,
+      "duration_s": 0.001
+    }
+  }
+}

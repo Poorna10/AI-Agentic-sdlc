@@ -1,0 +1,26 @@
+{
+  "name": "ambiguous",
+  "description": "Vague 'make it production ready' request: clarification, assumptions, mid-run change request and re-plan",
+  "requirement": "Make the URL shortener production ready. It should be fast and secure, and we are seeing abuse from bots.",
+  "baseline_packs": ["core", "expiry"],
+  "human": {
+    "mode": "scripted",
+    "approver": "human:product-owner",
+    "default": "approve",
+    "answers": {
+      "AMB-PERF": "p95 redirect latency under 50 ms.",
+      "AMB-SEC": "Throttle abusive clients and add standard browser security headers."
+    },
+    "approvals": {
+      "requirements_signoff": {"decision": "approve", "comment": "Assumptions AMB-PROD and AMB-ABUSE accepted (30 creates/min/client)."},
+      "design_signoff": {"decision": "approve", "comment": "New 429 / 422 failure modes are acceptable to API clients."},
+      "release_approval": {"decision": "approve", "comment": "Ship."}
+    }
+  },
+  "events": [
+    {"id": "CR-1", "after_stage": "implement", "type": "amend_requirement", "by": "security-lead",
+     "text": "Also reject links whose destination is a known phishing domain (blocklist).",
+     "reason": "Phishing campaign reported while implementation was in flight"}
+  ],
+  "faults": []
+}
